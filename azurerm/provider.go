@@ -218,6 +218,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_mysql_server":                            resourceArmMySqlServer(),
 			"azurerm_mysql_virtual_network_rule":              resourceArmMySqlVirtualNetworkRule(),
 			"azurerm_network_interface":                       resourceArmNetworkInterface(),
+			"azurerm_network_profile":                         resourceArmNetworkProfile(),
 			"azurerm_network_security_group":                  resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":                   resourceArmNetworkSecurityRule(),
 			"azurerm_network_watcher":                         resourceArmNetworkWatcher(),
