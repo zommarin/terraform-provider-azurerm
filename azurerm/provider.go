@@ -258,6 +258,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_network_interface_application_gateway_backend_address_pool_association": resourceArmNetworkInterfaceApplicationGatewayBackendAddressPoolAssociation(),
 			"azurerm_network_interface_backend_address_pool_association":                     resourceArmNetworkInterfaceBackendAddressPoolAssociation(),
 			"azurerm_network_interface_nat_rule_association":                                 resourceArmNetworkInterfaceNatRuleAssociation(),
+			"azurerm_network_profile":                                                        resourceArmNetworkProfile(),
 			"azurerm_network_security_group":                                                 resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":                                                  resourceArmNetworkSecurityRule(),
 			"azurerm_network_watcher":                                                        resourceArmNetworkWatcher(),
