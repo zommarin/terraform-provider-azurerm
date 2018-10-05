@@ -43,6 +43,13 @@ func resourceArmContainerGroup() *schema.Resource {
 				}, true),
 			},
 
+			"network_profile_id": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+			},
+
 			"os_type": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -247,6 +254,7 @@ func resourceArmContainerGroupCreate(d *schema.ResourceData, meta interface{}) e
 	location := azureRMNormalizeLocation(d.Get("location").(string))
 	osType := d.Get("os_type").(string)
 	ipAddressType := d.Get("ip_address_type").(string)
+	networkProfileID := d.Get("network_profile_id").(string)
 	tags := d.Get("tags").(map[string]interface{})
 	restartPolicy := d.Get("restart_policy").(string)
 
@@ -261,6 +269,9 @@ func resourceArmContainerGroupCreate(d *schema.ResourceData, meta interface{}) e
 			IPAddress: &containerinstance.IPAddress{
 				Type:  containerinstance.ContainerGroupIPAddressType(ipAddressType),
 				Ports: containerGroupPorts,
+			},
+			NetworkProfile: &containerinstance.ContainerGroupNetworkProfile{
+				ID: &networkProfileID,
 			},
 			OsType:                   containerinstance.OperatingSystemTypes(osType),
 			Volumes:                  containerGroupVolumes,
