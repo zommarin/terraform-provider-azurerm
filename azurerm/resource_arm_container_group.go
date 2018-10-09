@@ -332,7 +332,7 @@ func resourceArmContainerGroupRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if props := resp.ContainerGroupProperties; props != nil {
-		containerConfigs := flattenContainerGroupContainers(d, resp.Containers, props.IPAddress.Ports, props.Volumes)
+		containerConfigs := flattenContainerGroupContainers(d, resp.Containers, props.IPAddress, props.Volumes)
 		if err := d.Set("container", containerConfigs); err != nil {
 			return fmt.Errorf("Error setting `container`: %+v", err)
 		}
@@ -350,6 +350,10 @@ func resourceArmContainerGroupRead(d *schema.ResourceData, meta interface{}) err
 
 		d.Set("restart_policy", string(props.RestartPolicy))
 		d.Set("os_type", string(props.OsType))
+
+		if netProfile := props.NetworkProfile; netProfile != nil && netProfile.ID != nil {
+			d.Set("network_profile_id", *netProfile.ID)
+		}
 	}
 	flattenAndSetTags(d, resp.Tags)
 
@@ -378,7 +382,7 @@ func resourceArmContainerGroupDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func flattenContainerGroupContainers(d *schema.ResourceData, containers *[]containerinstance.Container, containerGroupPorts *[]containerinstance.Port, containerGroupVolumes *[]containerinstance.Volume) []interface{} {
+func flattenContainerGroupContainers(d *schema.ResourceData, containers *[]containerinstance.Container, ipAddress *containerinstance.IPAddress, containerGroupVolumes *[]containerinstance.Volume) []interface{} {
 
 	containerConfigs := make([]interface{}, 0, len(*containers))
 	for _, container := range *containers {
@@ -398,8 +402,8 @@ func flattenContainerGroupContainers(d *schema.ResourceData, containers *[]conta
 			containerConfig["port"] = containerPort
 			// protocol isn't returned in container config, have to search in container group ports
 			protocol := ""
-			if containerGroupPorts != nil {
-				for _, cgPort := range *containerGroupPorts {
+			if ipAddress != nil && ipAddress.Ports != nil {
+				for _, cgPort := range *ipAddress.Ports {
 					if *cgPort.Port == containerPort {
 						protocol = string(cgPort.Protocol)
 					}
