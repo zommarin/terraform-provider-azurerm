@@ -64,6 +64,39 @@ func resourceArmSubnet() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"delegations": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"service_delegation": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"service_name": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"actions": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -116,12 +149,15 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		defer azureRMUnlockByName(routeTableName, routeTableResourceName)
 	}
 
-	serviceEndpoints, serviceEndpointsErr := expandAzureRmServiceEndpoints(d)
+	serviceEndpoints, serviceEndpointsErr := expandSubnetServiceEndpoints(d)
 	if serviceEndpointsErr != nil {
 		return fmt.Errorf("Error Building list of Service Endpoints: %+v", serviceEndpointsErr)
 	}
 
 	properties.ServiceEndpoints = &serviceEndpoints
+
+	delegations, err := expandSubnetDelegations(d)
+	properties.Delegations = &delegations
 
 	subnet := network.Subnet{
 		Name: &name,
@@ -197,6 +233,11 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("service_endpoints", serviceEndpoints); err != nil {
 			return err
 		}
+
+		delegations := flattenSubnetDelegations(props.Delegations)
+		if err := d.Set("delegations", delegations); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -254,7 +295,7 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func expandAzureRmServiceEndpoints(d *schema.ResourceData) ([]network.ServiceEndpointPropertiesFormat, error) {
+func expandSubnetServiceEndpoints(d *schema.ResourceData) ([]network.ServiceEndpointPropertiesFormat, error) {
 	serviceEndpoints := d.Get("service_endpoints").([]interface{})
 	enpoints := make([]network.ServiceEndpointPropertiesFormat, 0)
 
@@ -293,4 +334,67 @@ func flattenSubnetIPConfigurations(ipConfigurations *[]network.IPConfiguration) 
 	}
 
 	return ips
+}
+
+func expandSubnetDelegations(d *schema.ResourceData) ([]network.Delegation, error) {
+	delegations := d.Get("delegations").([]interface{})
+	retDelegations := make([]network.Delegation, 0)
+
+	for _, deleValue := range delegations {
+		deleData := deleValue.(map[string]interface{})
+		deleName := deleData["name"].(string)
+		srvDelegation := deleData["service_delegation"].([]interface{})[0].(map[string]interface{})
+		srvName := srvDelegation["service_name"].(string)
+		srvActions := srvDelegation["actions"].([]interface{})
+
+		retSrvActions := make([]string, 0)
+		for _, srvAction := range srvActions {
+			srvActionData := srvAction.(string)
+			retSrvActions = append(retSrvActions, srvActionData)
+		}
+
+		retDelegation := network.Delegation{
+			Name: &deleName,
+			ServiceDelegationPropertiesFormat: &network.ServiceDelegationPropertiesFormat{
+				ServiceName: &srvName,
+				Actions:     &retSrvActions,
+			},
+		}
+
+		retDelegations = append(retDelegations, retDelegation)
+	}
+
+	return retDelegations, nil
+}
+
+func flattenSubnetDelegations(delegations *[]network.Delegation) []interface{} {
+	retDelegations := make([]interface{}, 0)
+	if delegations == nil {
+		return retDelegations
+	}
+
+	for _, deleData := range *delegations {
+		retDelegation := make(map[string]interface{})
+
+		if deleData.Name == nil || deleData.ServiceDelegationPropertiesFormat == nil {
+			continue
+		}
+
+		srvDeleProps := *deleData.ServiceDelegationPropertiesFormat
+		if srvDeleProps.ServiceName == nil {
+			continue
+		}
+
+		srvDelegation := make(map[string]interface{})
+		srvDelegation["service_name"] = *srvDeleProps.ServiceName
+		if srvDeleProps.Actions != nil {
+			srvDelegation["actions"] = *srvDeleProps.Actions
+		}
+
+		retDelegation["name"] = *deleData.Name
+		retDelegation["service_delegation"] = []interface{}{srvDelegation}
+		retDelegations = append(retDelegations, retDelegation)
+	}
+
+	return retDelegations
 }
