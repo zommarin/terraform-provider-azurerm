@@ -194,12 +194,14 @@ type ArmClient struct {
 	sqlDatabasesClient                       sql.DatabasesClient
 	sqlDatabaseThreatDetectionPoliciesClient sql.DatabaseThreatDetectionPoliciesClient
 	sqlElasticPoolsClient                    sql.ElasticPoolsClient
-	// Client for the new 2017-10-01-preview SQL API which implements vCore, DTU, and Azure data standards
-	msSqlElasticPoolsClient              MsSql.ElasticPoolsClient
-	sqlFirewallRulesClient               sql.FirewallRulesClient
-	sqlServersClient                     sql.ServersClient
-	sqlServerAzureADAdministratorsClient sql.ServerAzureADAdministratorsClient
-	sqlVirtualNetworkRulesClient         sql.VirtualNetworkRulesClient
+	sqlFirewallRulesClient                   sql.FirewallRulesClient
+	sqlServersClient                         sql.ServersClient
+	sqlServerAzureADAdministratorsClient     sql.ServerAzureADAdministratorsClient
+	sqlVirtualNetworkRulesClient             sql.VirtualNetworkRulesClient
+
+// Client for the new 2017-10-01-preview SQL API which implements vCore and Azure data standards
+msSqlDatabasesClient                 MsSql.DatabasesClient
+msSqlElasticPoolsClient              MsSql.ElasticPoolsClient
 
 	// Data Lake Store
 	dataLakeStoreAccountClient       storeAccount.AccountsClient
@@ -726,6 +728,10 @@ func (c *ArmClient) registerDatabases(endpoint, subscriptionId string, auth auto
 	postgresqlVNRClient := postgresql.NewVirtualNetworkRulesClientWithBaseURI(endpoint, subscriptionId)
 	c.configureClient(&postgresqlVNRClient.Client, auth)
 	c.postgresqlVirtualNetworkRulesClient = postgresqlVNRClient
+
+	msSqlDBClient := sql.NewDatabasesClientWithBaseURI(endpoint, subscriptionId)
+	c.configureClient(&msSqlDBClient.Client, auth)
+	c.msSqlDatabasesClient = msSqlDBClient
 
 	// SQL Azure
 	sqlDBClient := sql.NewDatabasesClientWithBaseURI(endpoint, subscriptionId)
