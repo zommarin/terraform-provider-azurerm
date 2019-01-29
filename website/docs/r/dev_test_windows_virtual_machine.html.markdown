@@ -131,9 +131,18 @@ The following attributes are exported:
 
 * `fqdn` - The FQDN of the Virtual Machine.
 
+* `network_interface` - One `network_interface` block as defined below.
+
 * `inbound_nat_rule` - One or more `inbound_nat_rule` blocks as defined below.
 
 * `unique_identifier` - The unique immutable identifier of the Virtual Machine.
+
+---
+A `network_interface` block exports the following:
+
+* `public_ip_address` - The public ip address of virtual machine.
+
+* `private_ip_address` - The private ip address of virtual machine.
 
 ---
 

@@ -115,6 +115,23 @@ func SchemaDevTestVirtualMachineGalleryImageReference() *schema.Schema {
 	}
 }
 
+func FlattenDevTestNetworkInterface(input *dtl.NetworkInterfaceProperties) []interface{} {
+	if input == nil {
+		return []interface{}{}
+	}
+
+	output := make(map[string]interface{})
+
+	if v := input.PublicIPAddress; v != nil {
+		output["public_ip_address"] = *v
+	}
+	if v := input.PrivateIPAddress; v != nil {
+		output["private_ip_address"] = *v
+	}
+
+	return []interface{}{output}
+}
+
 func FlattenDevTestVirtualMachineGalleryImage(input *dtl.GalleryImageReference) []interface{} {
 	results := make([]interface{}, 0)
 

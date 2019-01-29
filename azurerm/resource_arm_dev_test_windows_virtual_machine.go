@@ -115,6 +115,24 @@ func resourceArmDevTestWindowsVirtualMachine() *schema.Resource {
 				Computed: true,
 			},
 
+			"network_interface": {
+				Type:     schema.TypeList,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"public_ip_address": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"private_ip_address": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+
 			"unique_identifier": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -264,6 +282,9 @@ func resourceArmDevTestWindowsVirtualMachineRead(d *schema.ResourceData, meta in
 
 		// Computed fields
 		d.Set("fqdn", props.Fqdn)
+		if err := d.Set("network_interface", azure.FlattenDevTestNetworkInterface(props.NetworkInterface)); err != nil {
+			return fmt.Errorf("Error setting `network_interface`: %+v", err)
+		}
 		d.Set("unique_identifier", props.UniqueIdentifier)
 	}
 
