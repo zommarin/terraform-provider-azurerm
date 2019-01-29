@@ -729,7 +729,7 @@ func (c *ArmClient) registerDatabases(endpoint, subscriptionId string, auth auto
 	c.configureClient(&postgresqlVNRClient.Client, auth)
 	c.postgresqlVirtualNetworkRulesClient = postgresqlVNRClient
 
-	msSqlDBClient := sql.NewDatabasesClientWithBaseURI(endpoint, subscriptionId)
+	msSqlDBClient := MsSql.NewDatabasesClientWithBaseURI(endpoint, subscriptionId)
 	c.configureClient(&msSqlDBClient.Client, auth)
 	c.msSqlDatabasesClient = msSqlDBClient
 

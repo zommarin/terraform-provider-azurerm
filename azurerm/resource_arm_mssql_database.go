@@ -55,44 +55,30 @@ func resourceArmMsSqlDatabase() *schema.Resource {
 				Default:          string(sql.Default),
 				DiffSuppressFunc: suppress.CaseDifference,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(sql.CreateMode.Copy),
-					string(sql.Default),
-					string(sql.OnlineSecondary),
-					string(sql.PointInTimeRestore),
-					string(sql.Recovery),
-					string(sql.Restore),
-					string(sql.RestoreExternalBackup),
-					string(sql.RestoreExternalBackupSecondary),
-					string(sql.RestoreLongTermRetentionBackup),
-					string(sql.Secondary),
+					string(sql.CreateModeCopy),
+					string(sql.CreateModeDefault),
+					string(sql.CreateModeOnlineSecondary),
+					string(sql.CreateModePointInTimeRestore),
+					string(sql.CreateModeRecovery),
+					string(sql.CreateModeRestore),
+					string(sql.CreateModeRestoreExternalBackup),
+					string(sql.CreateModeRestoreExternalBackupSecondary),
+					string(sql.CreateModeRestoreLongTermRetentionBackup),
+					string(sql.CreateModeSecondary),
 				}, true),
 			},
 
-			"source_database_id": {
+			"elasticpool_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"restore_point_in_time": {
+			"long_term_retention_backup_resource_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validate.RFC3339Time,
-			},
-
-			"collation": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"catalog_collation": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
 			},
 
 			"max_size_gb": {
@@ -101,132 +87,107 @@ func resourceArmMsSqlDatabase() *schema.Resource {
 				Computed: true,
 			},
 
-			"requested_service_objective_id": {
+			"read_scale": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validate.UUID,
 			},
 
-			"requested_service_objective_name": {
+			"recoverable_database_id": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
 				DiffSuppressFunc: suppress.CaseDifference,
 				ValidateFunc:     validate.NoEmptyStrings,
-				// TODO: add validation once the Enum's complete
-				// https://github.com/Azure/azure-rest-api-specs/issues/1609
 			},
 
-			"source_database_deletion_date": {
+			"recovery_services_recovery_point_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validate.RFC3339Time,
 			},
 
-			"elastic_pool_name": {
+			"restorable_dropped_database_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"encryption": {
+			"restore_point_in_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"creation_date": {
+			"sample_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"default_secondary_location": {
+			"source_database_deletion_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"threat_detection_policy": {
+			"source_database_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"zone_redundant": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"sku": {
 				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"disabled_alerts": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Set:      schema.HashString,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-								ValidateFunc: validation.StringInSlice([]string{
-									"Sql_Injection",
-									"Sql_Injection_Vulnerability",
-									"Access_Anomaly",
-								}, true),
-							},
-						},
-
-						"email_account_admins": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							DiffSuppressFunc: suppress.CaseDifference,
-							Default:          string(sql.SecurityAlertPolicyEmailAccountAdminsDisabled),
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								string(sql.SecurityAlertPolicyEmailAccountAdminsDisabled),
-								string(sql.SecurityAlertPolicyEmailAccountAdminsEnabled),
+								"BasicPool",
+								"StandardPool",
+								"PremiumPool",
+								"GP_Gen4",
+								"GP_Gen5",
+								"BC_Gen4",
+								"BC_Gen5",
 							}, true),
+							DiffSuppressFunc: suppress.CaseDifference,
 						},
 
-						"email_addresses": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-							Set: schema.HashString,
-						},
-
-						"retention_days": {
+						"capacity": {
 							Type:         schema.TypeInt,
-							Optional:     true,
+							Required:     true,
 							ValidateFunc: validation.IntAtLeast(0),
 						},
 
-						"state": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							DiffSuppressFunc: suppress.CaseDifference,
-							Default:          string(sql.SecurityAlertPolicyStateDisabled),
+						"tier": {
+							Type:     schema.TypeString,
+							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								string(sql.SecurityAlertPolicyStateDisabled),
-								string(sql.SecurityAlertPolicyStateEnabled),
-								string(sql.SecurityAlertPolicyStateNew),
+								"Basic",
+								"Standard",
+								"Premium",
+								"GeneralPurpose",
+								"BusinessCritical",
 							}, true),
-						},
-
-						"storage_account_access_key": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Sensitive:    true,
-							ValidateFunc: validate.NoEmptyStrings,
-						},
-
-						"storage_endpoint": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validate.NoEmptyStrings,
-						},
-
-						"use_server_default": {
-							Type:             schema.TypeString,
-							Optional:         true,
 							DiffSuppressFunc: suppress.CaseDifference,
-							Default:          string(sql.SecurityAlertPolicyUseServerDefaultDisabled),
+						},
+
+						"family": {
+							Type:     schema.TypeString,
+							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								string(sql.SecurityAlertPolicyUseServerDefaultDisabled),
-								string(sql.SecurityAlertPolicyUseServerDefaultEnabled),
+								"Gen4",
+								"Gen5",
 							}, true),
+							DiffSuppressFunc: suppress.CaseDifference,
 						},
 					},
 				},
@@ -429,15 +390,6 @@ func resourceArmMsSqlDatabaseRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error making Read request on Sql Database %s: %+v", name, err)
 	}
 
-	threatDetectionClient := meta.(*ArmClient).sqlDatabaseThreatDetectionPoliciesClient
-	threatDetection, err := threatDetectionClient.Get(ctx, resourceGroup, serverName, name)
-	if err == nil {
-		flattenedThreatDetection := flattenArmMsSqlServerThreatDetectionPolicy(d, threatDetection)
-		if err := d.Set("threat_detection_policy", flattenedThreatDetection); err != nil {
-			return fmt.Errorf("Error setting `threat_detection_policy`: %+v", err)
-		}
-	}
-
 	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resourceGroup)
 	if location := resp.Location; location != nil {
@@ -508,138 +460,4 @@ func resourceArmMsSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	return nil
-}
-
-func flattenEncryptionStatus(encryption *[]sql.TransparentDataEncryption) string {
-	if encryption != nil {
-		encrypted := *encryption
-		if len(encrypted) > 0 {
-			if props := encrypted[0].TransparentDataEncryptionProperties; props != nil {
-				return string(props.Status)
-			}
-		}
-	}
-
-	return ""
-}
-
-func flattenArmMsSqlServerThreatDetectionPolicy(d *schema.ResourceData, policy sql.DatabaseSecurityAlertPolicy) []interface{} {
-
-	// The SQL database threat detection API always returns the default value even if never set.
-	// If the values are on their default one, threat it as not set.
-	properties := policy.DatabaseSecurityAlertPolicyProperties
-	if properties == nil {
-		return []interface{}{}
-	}
-
-	threatDetectionPolicy := make(map[string]interface{})
-
-	threatDetectionPolicy["state"] = string(properties.State)
-	threatDetectionPolicy["email_account_admins"] = string(properties.EmailAccountAdmins)
-	threatDetectionPolicy["use_server_default"] = string(properties.UseServerDefault)
-
-	if disabledAlerts := properties.DisabledAlerts; disabledAlerts != nil {
-		flattenedAlerts := schema.NewSet(schema.HashString, []interface{}{})
-		if v := *disabledAlerts; v != "" {
-			parsedAlerts := strings.Split(v, ";")
-			for _, a := range parsedAlerts {
-				flattenedAlerts.Add(a)
-			}
-		}
-		threatDetectionPolicy["disabled_alerts"] = flattenedAlerts
-	}
-	if emailAddresses := properties.EmailAddresses; emailAddresses != nil {
-		flattenedEmails := schema.NewSet(schema.HashString, []interface{}{})
-		if v := *emailAddresses; v != "" {
-			parsedEmails := strings.Split(*emailAddresses, ";")
-			for _, e := range parsedEmails {
-				flattenedEmails.Add(e)
-			}
-		}
-		threatDetectionPolicy["email_addresses"] = flattenedEmails
-	}
-	if properties.StorageEndpoint != nil {
-		threatDetectionPolicy["storage_endpoint"] = *properties.StorageEndpoint
-	}
-	if properties.RetentionDays != nil {
-		threatDetectionPolicy["retention_days"] = int(*properties.RetentionDays)
-	}
-
-	// If storage account access key is in state read it to the new state, as the API does not return it for security reasons
-	if v, ok := d.GetOk("threat_detection_policy.0.storage_account_access_key"); ok {
-		threatDetectionPolicy["storage_account_access_key"] = v.(string)
-	}
-
-	return []interface{}{threatDetectionPolicy}
-}
-
-func expandAzureRmMsSqlDatabaseImport(d *schema.ResourceData) sql.ImportExtensionRequest {
-	v := d.Get("import")
-	dbimportRefs := v.([]interface{})
-	dbimportRef := dbimportRefs[0].(map[string]interface{})
-	return sql.ImportExtensionRequest{
-		Name: utils.String("terraform"),
-		ImportExtensionProperties: &sql.ImportExtensionProperties{
-			StorageKeyType:             sql.StorageKeyType(dbimportRef["storage_key_type"].(string)),
-			StorageKey:                 utils.String(dbimportRef["storage_key"].(string)),
-			StorageURI:                 utils.String(dbimportRef["storage_uri"].(string)),
-			AdministratorLogin:         utils.String(dbimportRef["administrator_login"].(string)),
-			AdministratorLoginPassword: utils.String(dbimportRef["administrator_login_password"].(string)),
-			AuthenticationType:         sql.AuthenticationType(dbimportRef["authentication_type"].(string)),
-			OperationMode:              utils.String(dbimportRef["operation_mode"].(string)),
-		},
-	}
-}
-
-func expandArmMsSqlServerThreatDetectionPolicy(d *schema.ResourceData, location string) (*sql.DatabaseSecurityAlertPolicy, error) {
-	policy := sql.DatabaseSecurityAlertPolicy{
-		Location: utils.String(location),
-		DatabaseSecurityAlertPolicyProperties: &sql.DatabaseSecurityAlertPolicyProperties{
-			State: sql.SecurityAlertPolicyStateDisabled,
-		},
-	}
-	properties := policy.DatabaseSecurityAlertPolicyProperties
-
-	td, ok := d.GetOk("threat_detection_policy")
-	if !ok {
-		return &policy, nil
-	}
-
-	if tdl := td.([]interface{}); len(tdl) > 0 {
-		threatDetection := tdl[0].(map[string]interface{})
-
-		properties.State = sql.SecurityAlertPolicyState(threatDetection["state"].(string))
-		properties.EmailAccountAdmins = sql.SecurityAlertPolicyEmailAccountAdmins(threatDetection["email_account_admins"].(string))
-		properties.UseServerDefault = sql.SecurityAlertPolicyUseServerDefault(threatDetection["use_server_default"].(string))
-
-		if v, ok := threatDetection["disabled_alerts"]; ok {
-			alerts := v.(*schema.Set).List()
-			expandedAlerts := make([]string, len(alerts))
-			for i, a := range alerts {
-				expandedAlerts[i] = a.(string)
-			}
-			properties.DisabledAlerts = utils.String(strings.Join(expandedAlerts, ";"))
-		}
-		if v, ok := threatDetection["email_addresses"]; ok {
-			emails := v.(*schema.Set).List()
-			expandedEmails := make([]string, len(emails))
-			for i, e := range emails {
-				expandedEmails[i] = e.(string)
-			}
-			properties.EmailAddresses = utils.String(strings.Join(expandedEmails, ";"))
-		}
-		if v, ok := threatDetection["retention_days"]; ok {
-			properties.RetentionDays = utils.Int32(int32(v.(int)))
-		}
-		if v, ok := threatDetection["storage_account_access_key"]; ok {
-			properties.StorageAccountAccessKey = utils.String(v.(string))
-		}
-		if v, ok := threatDetection["storage_endpoint"]; ok {
-			properties.StorageEndpoint = utils.String(v.(string))
-		}
-
-		return &policy, nil
-	}
-
-	return &policy, nil
 }
