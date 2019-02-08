@@ -1,4 +1,4 @@
-package subscriptions
+package subscription
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
 //
@@ -25,9 +25,7 @@ import (
 	"net/http"
 )
 
-// TenantsClient is the all resource groups and resources exist within subscriptions. These operation enable you get
-// information about your subscriptions and tenants. A tenant is a dedicated instance of Azure Active Directory (Azure
-// AD) for your organization.
+// TenantsClient is the the subscription client
 type TenantsClient struct {
 	BaseClient
 }
@@ -57,20 +55,20 @@ func (client TenantsClient) List(ctx context.Context) (result TenantListResultPa
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "subscription.TenantsClient", "List", nil, "Failure preparing request")
 		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.tlr.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "subscription.TenantsClient", "List", resp, "Failure sending request")
 		return
 	}
 
 	result.tlr, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "List", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "subscription.TenantsClient", "List", resp, "Failure responding to request")
 	}
 
 	return
@@ -115,7 +113,7 @@ func (client TenantsClient) ListResponder(resp *http.Response) (result TenantLis
 func (client TenantsClient) listNextResults(ctx context.Context, lastResults TenantListResult) (result TenantListResult, err error) {
 	req, err := lastResults.tenantListResultPreparer(ctx)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "listNextResults", nil, "Failure preparing next results request")
+		return result, autorest.NewErrorWithError(err, "subscription.TenantsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -123,11 +121,11 @@ func (client TenantsClient) listNextResults(ctx context.Context, lastResults Ten
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "listNextResults", resp, "Failure sending next results request")
+		return result, autorest.NewErrorWithError(err, "subscription.TenantsClient", "listNextResults", resp, "Failure sending next results request")
 	}
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "subscriptions.TenantsClient", "listNextResults", resp, "Failure responding to next results request")
+		err = autorest.NewErrorWithError(err, "subscription.TenantsClient", "listNextResults", resp, "Failure responding to next results request")
 	}
 	return
 }

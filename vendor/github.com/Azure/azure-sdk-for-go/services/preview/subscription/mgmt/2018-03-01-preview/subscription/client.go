@@ -1,9 +1,7 @@
-// Package subscriptions implements the Azure ARM Subscriptions service API version 2016-06-01.
+// Package subscription implements the Azure ARM Subscription service API version .
 //
-// All resource groups and resources exist within subscriptions. These operation enable you get information about your
-// subscriptions and tenants. A tenant is a dedicated instance of Azure Active Directory (Azure AD) for your
-// organization.
-package subscriptions
+// The subscription client
+package subscription
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
 //
@@ -27,11 +25,11 @@ import (
 )
 
 const (
-	// DefaultBaseURI is the default URI used for the service Subscriptions
+	// DefaultBaseURI is the default URI used for the service Subscription
 	DefaultBaseURI = "https://management.azure.com"
 )
 
-// BaseClient is the base client for Subscriptions.
+// BaseClient is the base client for Subscription.
 type BaseClient struct {
 	autorest.Client
 	BaseURI string

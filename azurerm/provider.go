@@ -338,6 +338,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_subnet_network_security_group_association":                              resourceArmSubnetNetworkSecurityGroupAssociation(),
 			"azurerm_subnet_route_table_association":                                         resourceArmSubnetRouteTableAssociation(),
 			"azurerm_subnet":                                                                 resourceArmSubnet(),
+			"azurerm_subscription":                                                           resourceArmSubscription(),
 			"azurerm_template_deployment":                                                    resourceArmTemplateDeployment(),
 			"azurerm_traffic_manager_endpoint":                                               resourceArmTrafficManagerEndpoint(),
 			"azurerm_traffic_manager_profile":                                                resourceArmTrafficManagerProfile(),
