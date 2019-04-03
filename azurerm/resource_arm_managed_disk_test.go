@@ -15,6 +15,7 @@ import (
 func TestAccAzureRMManagedDisk_empty(t *testing.T) {
 	resourceName := "azurerm_managed_disk.test"
 	ri := tf.AccRandTimeInt()
+	location := testLocation()
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -23,7 +24,7 @@ func TestAccAzureRMManagedDisk_empty(t *testing.T) {
 		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMManagedDisk_empty(ri, testLocation()),
+				Config: testAccAzureRMManagedDisk_empty(ri, location),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMManagedDiskExists(resourceName, &d, true),
 				),
@@ -32,6 +33,36 @@ func TestAccAzureRMManagedDisk_empty(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMManagedDisk_requiresImport(t *testing.T) {
+	if !requireResourcesToBeImported {
+		t.Skip("Skipping since resources aren't required to be imported")
+		return
+	}
+
+	resourceName := "azurerm_managed_disk.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+	var d compute.Disk
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMManagedDisk_empty(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMManagedDiskExists(resourceName, &d, true),
+				),
+			},
+			{
+				Config:      testAccAzureRMManagedDisk_requiresImport(ri, location),
+				ExpectError: testRequiresImportError("azurerm_managed_disk"),
 			},
 		},
 	})
@@ -348,12 +379,33 @@ resource "azurerm_managed_disk" "test" {
   create_option        = "Empty"
   disk_size_gb         = "1"
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }
 }
 `, rInt, location, rInt)
+}
+
+func testAccAzureRMManagedDisk_requiresImport(rInt int, location string) string {
+	template := testAccAzureRMManagedDisk_empty(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_managed_disk" "import" {
+  name                 = "${azurerm_managed_disk.test.name}"
+  location             = "${azurerm_managed_disk.test.location}"
+  resource_group_name  = "${azurerm_managed_disk.test.resource_group_name}"
+  storage_account_type = "Standard_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = "1"
+
+  tags = {
+    environment = "acctest"
+    cost-center = "ops"
+  }
+}
+`, template)
 }
 
 func testAccAzureRMManagedDisk_empty_withZone(rInt int, location string) string {
@@ -372,7 +424,7 @@ resource "azurerm_managed_disk" "test" {
   disk_size_gb         = "1"
   zones                = ["1"]
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }
@@ -394,7 +446,7 @@ resource "azurerm_storage_account" "test" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
 
-  tags {
+  tags = {
     environment = "staging"
   }
 }
@@ -415,7 +467,7 @@ resource "azurerm_managed_disk" "test" {
   source_uri           = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
   disk_size_gb         = "45"
 
-  tags {
+  tags = {
     environment = "acctest"
   }
 }
@@ -437,7 +489,7 @@ resource "azurerm_managed_disk" "source" {
   create_option        = "Empty"
   disk_size_gb         = "1"
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }
@@ -452,7 +504,7 @@ resource "azurerm_managed_disk" "test" {
   source_resource_id   = "${azurerm_managed_disk.source.id}"
   disk_size_gb         = "1"
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }
@@ -475,7 +527,7 @@ resource "azurerm_managed_disk" "test" {
   create_option        = "Empty"
   disk_size_gb         = "2"
 
-  tags {
+  tags = {
     environment = "acctest"
   }
 }
@@ -497,7 +549,7 @@ resource "azurerm_managed_disk" "test" {
   create_option        = "Empty"
   disk_size_gb         = "1"
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }
@@ -596,7 +648,7 @@ resource "azurerm_key_vault" "test" {
 
   enabled_for_disk_encryption = true
 
-  tags {
+  tags = {
     environment = "Production"
   }
 }
@@ -641,7 +693,7 @@ resource "azurerm_managed_disk" "test" {
     }
   }
 
-  tags {
+  tags = {
     environment = "acctest"
     cost-center = "ops"
   }

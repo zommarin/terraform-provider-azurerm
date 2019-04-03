@@ -16,7 +16,7 @@ func TestAccAzureRMMonitorMetricAlert_basic(t *testing.T) {
 	resourceName := "azurerm_monitor_metric_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorMetricAlert_basic(ri, rs, testLocation())
+	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,7 +24,7 @@ func TestAccAzureRMMonitorMetricAlert_basic(t *testing.T) {
 		CheckDestroy: testCheckAzureRMMonitorMetricAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
+				Config: testAccAzureRMMonitorMetricAlert_basic(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMMonitorMetricAlertExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -42,6 +42,36 @@ func TestAccAzureRMMonitorMetricAlert_basic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMMonitorMetricAlert_requiresImport(t *testing.T) {
+	if !requireResourcesToBeImported {
+		t.Skip("Skipping since resources aren't required to be imported")
+		return
+	}
+
+	resourceName := "azurerm_monitor_metric_alert.test"
+	ri := tf.AccRandTimeInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMMonitorMetricAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMMonitorMetricAlert_basic(ri, rs, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorMetricAlertExists(resourceName),
+				),
+			},
+			{
+				Config:      testAccAzureRMMonitorMetricAlert_requiresImport(ri, rs, location),
+				ExpectError: testRequiresImportError("azurerm_monitor_metric_alert"),
 			},
 		},
 	})
@@ -227,15 +257,36 @@ resource "azurerm_monitor_metric_alert" "test" {
 `, rInt, location, rString, rInt)
 }
 
+func testAccAzureRMMonitorMetricAlert_requiresImport(rInt int, rString, location string) string {
+	template := testAccAzureRMMonitorMetricAlert_basic(rInt, rString, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_monitor_metric_alert" "import" {
+  name                = "${azurerm_monitor_metric_alert.test.name}"
+  resource_group_name = "${azurerm_monitor_metric_alert.test.resource_group_name}"
+  scopes              = "${azurerm_monitor_metric_alert.test.scopes}"
+
+  criteria {
+    metric_namespace = "Microsoft.Storage/storageAccounts"
+    metric_name      = "UsedCapacity"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 55.5
+  }
+}
+`, template)
+}
+
 func testAccAzureRMMonitorMetricAlert_complete(rInt int, rString, location string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-  name     = "acctestRG-%d"
-  location = "%s"
+  name     = "acctestRG-%[1]d"
+  location = "%[2]s"
 }
 
 resource "azurerm_storage_account" "test" {
-  name                     = "acctestsa1%s"
+  name                     = "acctestsa1%[3]s"
   resource_group_name      = "${azurerm_resource_group.test.name}"
   location                 = "${azurerm_resource_group.test.location}"
   account_tier             = "Standard"
@@ -243,19 +294,19 @@ resource "azurerm_storage_account" "test" {
 }
 
 resource "azurerm_monitor_action_group" "test1" {
-  name                = "acctestActionGroup1-%d"
+  name                = "acctestActionGroup1-%[1]d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   short_name          = "acctestag1"
 }
 
 resource "azurerm_monitor_action_group" "test2" {
-  name                = "acctestActionGroup2-%d"
+  name                = "acctestActionGroup2-%[1]d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   short_name          = "acctestag2"
 }
 
 resource "azurerm_monitor_metric_alert" "test" {
-  name                = "acctestMetricAlert-%d"
+  name                = "acctestMetricAlert-%[1]d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   scopes              = ["${azurerm_storage_account.test.id}"]
   enabled             = true
@@ -273,15 +324,15 @@ resource "azurerm_monitor_metric_alert" "test" {
     threshold        = 99
 
     dimension {
-      "name"     = "GeoType"
-      "operator" = "Include"
-      "values"   = ["*"]
+      name     = "GeoType"
+      operator = "Include"
+      values   = ["*"]
     }
 
     dimension {
-      "name"     = "ApiName"
-      "operator" = "Include"
-      "values"   = ["*"]
+      name     = "ApiName"
+      operator = "Include"
+      values   = ["*"]
     }
   }
 
@@ -301,7 +352,7 @@ resource "azurerm_monitor_metric_alert" "test" {
     action_group_id = "${azurerm_monitor_action_group.test2.id}"
   }
 }
-`, rInt, location, rString, rInt, rInt, rInt)
+`, rInt, location, rString)
 }
 
 func testCheckAzureRMMonitorMetricAlertDestroy(s *terraform.State) error {

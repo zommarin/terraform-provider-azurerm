@@ -108,6 +108,32 @@ func TestAccAzureRMAppService_requiresImport(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMAppService_movingAppService(t *testing.T) {
+	resourceName := "azurerm_app_service.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAppServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMAppService_basic(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAppServiceExists(resourceName),
+				),
+			},
+			{
+				Config: testAccAzureRMAppService_moved(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAppServiceExists(resourceName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMAppService_freeTier(t *testing.T) {
 	resourceName := "azurerm_app_service.test"
 	ri := tf.AccRandTimeInt()
@@ -277,6 +303,40 @@ func TestAccAzureRMAppService_httpsOnly(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAppServiceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "https_only", "true"),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMAppService_clientCertEnabled(t *testing.T) {
+	resourceName := "azurerm_app_service.test"
+	ri := tf.AccRandTimeInt()
+	configClientCertEnabled := testAccAzureRMAppService_clientCertEnabled(ri, testLocation())
+	configClientCertEnabledNotSet := testAccAzureRMAppService_clientCertEnabledNotSet(ri, testLocation())
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAppServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: configClientCertEnabled,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAppServiceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "client_cert_enabled", "true"),
+				),
+			},
+			{
+				Config: configClientCertEnabledNotSet,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAppServiceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "client_cert_enabled", "false"),
 				),
 			},
 			{
@@ -1148,6 +1208,33 @@ func TestAccAzureRMAppService_minTls(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMAppService_corsSettings(t *testing.T) {
+	resourceName := "azurerm_app_service.test"
+	ri := tf.AccRandTimeInt()
+	config := testAccAzureRMAppService_corsSettings(ri, testLocation())
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAppServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAppServiceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "site_config.0.cors.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "site_config.0.cors.0.support_credentials", "true"),
+					resource.TestCheckResourceAttr(resourceName, "site_config.0.cors.0.allowed_origins.#", "3"),
+				)},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMAppServiceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*ArmClient).appServicesClient
 
@@ -1276,6 +1363,44 @@ resource "azurerm_app_service" "test" {
 `, rInt, location, rInt, rInt)
 }
 
+func testAccAzureRMAppService_moved(rInt int, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_app_service_plan" "test" {
+  name                = "acctestASP-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+resource "azurerm_app_service_plan" "other" {
+  name                = "acctestASP2-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+resource "azurerm_app_service" "test" {
+  name                = "acctestAS-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  app_service_plan_id = "${azurerm_app_service_plan.other.id}"
+}
+`, rInt, location, rInt, rInt, rInt)
+}
+
 func testAccAzureRMAppService_sharedTier(rInt int, location string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
@@ -1397,6 +1522,61 @@ resource "azurerm_app_service" "test" {
 `, rInt, location, rInt, rInt)
 }
 
+func testAccAzureRMAppService_clientCertEnabled(rInt int, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_app_service_plan" "test" {
+  name                = "acctestASP-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+resource "azurerm_app_service" "test" {
+  name                = "acctestAS-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  app_service_plan_id = "${azurerm_app_service_plan.test.id}"
+  client_cert_enabled = true
+}
+`, rInt, location, rInt, rInt)
+}
+
+func testAccAzureRMAppService_clientCertEnabledNotSet(rInt int, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_app_service_plan" "test" {
+  name                = "acctestASP-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+resource "azurerm_app_service" "test" {
+  name                = "acctestAS-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  app_service_plan_id = "${azurerm_app_service_plan.test.id}"
+}
+`, rInt, location, rInt, rInt)
+}
+
 func testAccAzureRMAppService_32Bit(rInt int, location string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
@@ -1483,7 +1663,7 @@ resource "azurerm_app_service" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   app_service_plan_id = "${azurerm_app_service_plan.test.id}"
 
-  app_settings {
+  app_settings = {
     "foo" = "bar"
   }
 }
@@ -1648,7 +1828,7 @@ resource "azurerm_app_service" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   app_service_plan_id = "${azurerm_app_service_plan.test.id}"
 
-  identity = {
+  identity {
     type = "SystemAssigned"
   }
 }
@@ -1968,7 +2148,7 @@ resource "azurerm_app_service" "test" {
     remote_debugging_version = "VS2015"
   }
 
-  tags {
+  tags = {
     "Hello" = "World"
   }
 }
@@ -1999,7 +2179,7 @@ resource "azurerm_app_service" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   app_service_plan_id = "${azurerm_app_service_plan.test.id}"
 
-  tags {
+  tags = {
     "Hello" = "World"
   }
 }
@@ -2030,7 +2210,7 @@ resource "azurerm_app_service" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   app_service_plan_id = "${azurerm_app_service_plan.test.id}"
 
-  tags {
+  tags = {
     "Hello"     = "World"
     "Terraform" = "AcceptanceTests"
   }
@@ -2286,7 +2466,7 @@ resource "azurerm_app_service" "test" {
     linux_fx_version = "DOCKER|(golang:latest)"
   }
 
-  app_settings {
+  app_settings = {
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
   }
 }
@@ -2322,4 +2502,42 @@ resource "azurerm_app_service" "test" {
   }
 }
 `, rInt, location, rInt, rInt, tlsVersion)
+}
+
+func testAccAzureRMAppService_corsSettings(rInt int, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_app_service_plan" "test" {
+  name                = "acctestASP-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+resource "azurerm_app_service" "test" {
+  name                = "acctestAS-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  app_service_plan_id = "${azurerm_app_service_plan.test.id}"
+
+  site_config {
+    cors {
+      allowed_origins = [
+        "http://www.contoso.com",
+        "www.contoso.com",
+        "contoso.com"
+      ]
+      support_credentials = true
+    }
+  }
+}
+`, rInt, location, rInt, rInt)
 }
