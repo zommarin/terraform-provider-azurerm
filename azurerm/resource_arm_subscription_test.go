@@ -16,7 +16,7 @@ func TestAccAzureRMSubscription_basic(t *testing.T) {
 
 	ri := tf.AccRandTimeInt()
 	config := testAccAzureRMSubscription_basic(ri)
-	resourceName := "azurerm_storage_share.test"
+	resourceName := "azurerm_subscription.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
