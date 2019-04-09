@@ -347,7 +347,7 @@ func expandHDInsightApplicationScriptActions(input []interface{}) *[]hdinsight.R
 		name := val["name"].(string)
 		uri := val["uri"].(string)
 
-		rolesRaw := val["roles"].(schema.Set).List()
+		rolesRaw := val["roles"].(*schema.Set).List()
 		roles := make([]string, 0)
 		for _, v := range rolesRaw {
 			role := v.(string)
