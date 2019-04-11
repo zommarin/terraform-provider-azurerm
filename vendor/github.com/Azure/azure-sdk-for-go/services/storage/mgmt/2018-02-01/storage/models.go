@@ -1169,7 +1169,7 @@ type CustomDomain struct {
 	// Name - Gets or sets the custom domain name assigned to the storage account. Name is the CNAME source.
 	Name *string `json:"name,omitempty"`
 	// UseSubDomainName - Indicates whether indirect CName validation is enabled. Default value is false. This should only be set on updates.
-	UseSubDomainName *bool `json:"useSubDomainName,omitempty"`
+	UseSubDomainName *string `json:"useSubDomainName,omitempty"`
 }
 
 // Dimension dimension of blobs, possibly be blob type or access tier.
