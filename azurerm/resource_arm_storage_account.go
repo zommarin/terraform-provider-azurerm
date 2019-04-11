@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage"
 	"github.com/hashicorp/go-getter/helper/url"
@@ -884,11 +885,11 @@ func expandStorageAccountCustomDomain(d *schema.ResourceData) *storage.CustomDom
 
 	var useSubDomain bool
 	switch domain["use_subdomain"].(type) {
-	  case string:
-		  useSubDomain, _ = strconv.ParseBool(domain["use_subdomain"].(string))
-	  default:
-		  useSubDomain = domain["use_subdomain"].(bool)
-	  }
+	case string:
+		useSubDomain, _ = strconv.ParseBool(domain["use_subdomain"].(string))
+	default:
+		useSubDomain = domain["use_subdomain"].(bool)
+	}
 
 	return &storage.CustomDomain{
 		Name:             utils.String(name),
