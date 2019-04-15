@@ -1,8 +1,14 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/hashicorp/terraform/helper/resource"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/hdinsight/mgmt/2018-06-01-preview/hdinsight"
 
@@ -55,6 +61,7 @@ func resourceArmHDInsightApplication() *schema.Resource {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
+				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -224,6 +231,7 @@ func resourceArmHDInsightApplicationCreate(d *schema.ResourceData, meta interfac
 		},
 	}
 
+	// whilst this returns a Future it's broken
 	future, err := client.Create(ctx, resourceGroup, clusterName, name, application)
 	if err != nil {
 		return fmt.Errorf("Error creating HDInsight Application %q (Cluster %q / Resource Group %q): %+v", name, clusterName, resourceGroup, err)
@@ -231,6 +239,12 @@ func resourceArmHDInsightApplicationCreate(d *schema.ResourceData, meta interfac
 
 	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
 		return fmt.Errorf("Error waiting for creation of HDInsight Application %q (Cluster %q / Resource Group %q): %+v", name, clusterName, resourceGroup, err)
+	}
+
+	// the WaitForCompletion completes instantly since the Deployment has started within Ambari
+	// but we have to wait for the cluster to re-enter the `Running` state
+	if err := waitForHDInsightClusterToBeReady(ctx, clustersClient, resourceGroup, clusterName); err != nil {
+		return err
 	}
 
 	read, err := client.Get(ctx, resourceGroup, clusterName, name)
@@ -311,6 +325,7 @@ func resourceArmHDInsightApplicationRead(d *schema.ResourceData, meta interface{
 
 func resourceArmHDInsightApplicationDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).hdinsightApplicationsClient
+	clustersClient := meta.(*ArmClient).hdinsightClustersClient
 	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
@@ -321,6 +336,7 @@ func resourceArmHDInsightApplicationDelete(d *schema.ResourceData, meta interfac
 	clusterName := id.Path["clusters"]
 	name := id.Path["applications"]
 
+	// whilst this returns a Future it's broken
 	future, err := client.Delete(ctx, resourceGroup, clusterName, name)
 	if err != nil {
 		if !response.WasNotFound(future.Response()) {
@@ -333,6 +349,12 @@ func resourceArmHDInsightApplicationDelete(d *schema.ResourceData, meta interfac
 		if !response.WasNotFound(future.Response()) {
 			return fmt.Errorf("Error waiting for deletion of HDInsight Application %q (Cluster %q / Resource Group %q): %+v", name, clusterName, resourceGroup, err)
 		}
+	}
+
+	// the WaitForCompletion completes instantly since the Deployment has started within Ambari
+	// but we have to wait for the cluster to re-enter the `Running` state
+	if err := waitForHDInsightClusterToBeReady(ctx, clustersClient, resourceGroup, clusterName); err != nil {
+		return err
 	}
 
 	return nil
@@ -459,4 +481,56 @@ func flattenHDInsightApplicationHttpsEndpoints(input *[]hdinsight.ApplicationGet
 	}
 
 	return outputs
+}
+
+func waitForHDInsightClusterToBeReady(ctx context.Context, client hdinsight.ClustersClient, resourceGroup string, clusterName string) error {
+	// we can't use the Waiter here since the API returns a 404 once it's deleted which is considered a polling status code..
+	log.Printf("[DEBUG] Waiting for HDInsight Cluster (%q in Resource Group %q) to be `Running`", clusterName, resourceGroup)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"Waiting"},
+		Target:  []string{"Running"},
+		Refresh: func() (interface{}, string, error) {
+			res, err := client.Get(ctx, resourceGroup, clusterName)
+
+			log.Printf("Retrieving HDInsight Cluster %q (Resource Group %q) returned Status %d", resourceGroup, clusterName, res.StatusCode)
+
+			if err != nil {
+				if utils.ResponseWasNotFound(res.Response) {
+					return res, strconv.Itoa(res.StatusCode), nil
+				}
+				return nil, "", fmt.Errorf("Error polling for the status of the HDInsight Cluster %q (RG: %q): %+v", clusterName, resourceGroup, err)
+			}
+
+			var clusterState string
+			if props := res.Properties; props != nil {
+				if props.ClusterState != nil {
+					clusterState = strings.ToLower(*props.ClusterState)
+				}
+			}
+
+			switch clusterState {
+			case "failed":
+				return res, "Failed", fmt.Errorf("clusterState was 'Failed'")
+
+			case "running":
+				return res, "Running", nil
+
+			case "accepted", "azurevmconfiguration", "hdinsightconfiguration":
+				return res, "Waiting", nil
+
+			default:
+				break
+			}
+
+			return res, "Unknown", fmt.Errorf("Unexpected clusterState %q", clusterState)
+		},
+		Timeout:                   40 * time.Minute,
+		PollInterval:              20 * time.Second,
+		ContinuousTargetOccurence: 3,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for HDInsight Cluster %q (Resource Group %q) to re-enter the `Running` state: %+v", clusterName, resourceGroup, err)
+	}
+
+	return nil
 }

@@ -10,6 +10,8 @@ description: |-
 
 Manages an Application within a HDInsight Cluster.
 
+~> **NOTE:** This extension runs scripts on a HDInsight (Spark, Storm etc.) Cluster - as such debug logs are available within the Ambari console.
+
 ## Example Usage
 
 ```hcl
@@ -25,8 +27,8 @@ resource "azurerm_hdinsight_application" "example" {
   vm_size                = "Standard_D4_V2"
 
   install_script_action {
-    name  = "say-hello"
-    uri   = "https://gist.githubusercontent.com/tombuildsstuff/74ff75620a83cf2a737843920185dbc2/raw/8217fbbcf9728e23807c19a35f65136351e6da7a/hello.sh"
+    name  = "example"
+    uri   = "https://gist.githubusercontent.com/tombuildsstuff/a09a5c2f3bad6945352261660d126b6c/raw/d05275103cb2b832691d1ed65115f47803375b25/hammer-time.sh"
     roles = [ "edgenode" ]
   }
 }
@@ -43,7 +45,6 @@ The following arguments are supported:
 * `marketplace_identifier` - (Required) Specifies the Marketplace Identifier for this HDInsight Application. Changing this forces a new resource to be created
 
 * `vm_size` - (Required) Specifies the size of the Virtual Machine used as the Edge Node. Changing this forces a new resource to be created.
-
 
 ---
 
@@ -69,7 +70,7 @@ A `install_script_action` block supports the following:
 
 * `name` - (Required) A name for this Script Action. Changing this forces a new resource to be created.
 
-* `roles` - (Required) The HDInsight Cluster Roles where this script should run. Possible values are `edgenode`, `headnode`, `workernode` and `zookeepernode`.. Changing this forces a new resource to be created.
+* `roles` - (Required) The HDInsight Cluster Roles where this script should run. Possible values are `edgenode`, `headnode`, `workernode` and `zookeepernode`. Changing this forces a new resource to be created.
 
 * `uri` - (Required) The URI to the script which should be run. Changing this forces a new resource to be created.
 
@@ -81,7 +82,7 @@ A `uninstall_script_action` block supports the following:
 
 * `name` - (Required) A name for this Script Action. Changing this forces a new resource to be created.
 
-* `roles` - (Required) The HDInsight Cluster Roles where this script should run. Possible values are `edgenode`, `headnode`, `workernode` and `zookeepernode`.. Changing this forces a new resource to be created.
+* `roles` - (Required) The HDInsight Cluster Roles where this script should run. Possible values are `edgenode`, `headnode`, `workernode` and `zookeepernode`. Changing this forces a new resource to be created.
 
 * `uri` - (Required) The URI to the script which should be run. Changing this forces a new resource to be created.
 
