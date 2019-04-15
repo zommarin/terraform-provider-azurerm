@@ -10,6 +10,8 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
+var hdInsightResourceName = "azurerm_hdinsight_cluster"
+
 func hdinsightClusterUpdate(clusterKind string, readFunc schema.ReadFunc) schema.UpdateFunc {
 	return func(d *schema.ResourceData, meta interface{}) error {
 		client := meta.(*ArmClient).hdinsightClustersClient
@@ -22,6 +24,10 @@ func hdinsightClusterUpdate(clusterKind string, readFunc schema.ReadFunc) schema
 
 		resourceGroup := id.ResourceGroup
 		name := id.Path["clusters"]
+
+		// only one change can be made to an HDInsight Cluster at any one time
+		azureRMLockByName(name, hdInsightResourceName)
+		defer azureRMUnlockByName(name, hdInsightResourceName)
 
 		if d.HasChange("tags") {
 			tags := d.Get("tags").(map[string]interface{})
@@ -70,6 +76,10 @@ func hdinsightClusterDelete(clusterKind string) schema.DeleteFunc {
 
 		resourceGroup := id.ResourceGroup
 		name := id.Path["clusters"]
+
+		// only one change can be made to an HDInsight Cluster at any one time
+		azureRMLockByName(name, hdInsightResourceName)
+		defer azureRMUnlockByName(name, hdInsightResourceName)
 
 		future, err := client.Delete(ctx, resourceGroup, name)
 		if err != nil {

@@ -173,6 +173,11 @@ func resourceArmHDInsightInteractiveQueryClusterCreate(d *schema.ResourceData, m
 		},
 		Tags: expandTags(tags),
 	}
+
+	// only one change can be made to an HDInsight Cluster at any one time
+	azureRMLockByName(name, hdInsightResourceName)
+	defer azureRMUnlockByName(name, hdInsightResourceName)
+
 	future, err := client.Create(ctx, resourceGroup, name, params)
 	if err != nil {
 		return fmt.Errorf("Error creating HDInsight Interactive Query Cluster %q (Resource Group %q): %+v", name, resourceGroup, err)

@@ -231,6 +231,10 @@ func resourceArmHDInsightApplicationCreate(d *schema.ResourceData, meta interfac
 		},
 	}
 
+	// only one change can be made to an HDInsight Cluster at any one time
+	azureRMLockByName(clusterName, hdInsightResourceName)
+	defer azureRMUnlockByName(clusterName, hdInsightResourceName)
+
 	// whilst this returns a Future it's broken
 	future, err := client.Create(ctx, resourceGroup, clusterName, name, application)
 	if err != nil {
@@ -335,6 +339,10 @@ func resourceArmHDInsightApplicationDelete(d *schema.ResourceData, meta interfac
 	resourceGroup := id.ResourceGroup
 	clusterName := id.Path["clusters"]
 	name := id.Path["applications"]
+
+	// only one change can be made to an HDInsight Cluster at any one time
+	azureRMLockByName(clusterName, hdInsightResourceName)
+	defer azureRMUnlockByName(clusterName, hdInsightResourceName)
 
 	// whilst this returns a Future it's broken
 	future, err := client.Delete(ctx, resourceGroup, clusterName, name)
