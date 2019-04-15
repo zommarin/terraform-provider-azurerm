@@ -135,12 +135,12 @@ func resourceArmHDInsightApplication() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"destination_port": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,
 						},
 						"public_port": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
