@@ -69,7 +69,7 @@ func resourceArmCognitiveAccount() *schema.Resource {
 
 			"sku": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -92,6 +92,18 @@ func resourceArmCognitiveAccount() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"sku_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.SkuCognitiveAccountStringInSlice([]string{
+					"F0", "S0", "S1", "S2", "S3", "S4", "S5", "S6", "P0", "P1", "P2",
+				}, []string{
+					string(cognitiveservices.Free),
+					string(cognitiveservices.Standard),
+					string(cognitiveservices.Premium),
+				}, false),
 			},
 
 			"tags": tagsSchema(),
