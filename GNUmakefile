@@ -12,6 +12,9 @@ default: build
 build: fmtcheck
 	go install
 
+install: build
+	cp ~/go/bin/terraform-provider-azurerm ~/.terraform.d/plugins/darwin_amd64/terraform-provider-azurerm_v99.99.99
+
 build-docker:
 	mkdir -p bin
 	docker run --rm -v $$(pwd)/bin:/go/bin -v $$(pwd):/go/src/github.com/terraform-providers/terraform-provider-azurerm -w /go/src/github.com/terraform-providers/terraform-provider-azurerm -e GOOS golang:1.11 make build
